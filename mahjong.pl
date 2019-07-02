@@ -1,6 +1,6 @@
 quantity(X, 4) :- isTile(X).
 
-isRun(X) :- 
+isRun(X) :- X=[Tile1,Tile2,Tile3], value(Tile1, V0), value(Tile2, V0+1), value(Tile3, V0+2).
 isTriplet(X) :- length(X, 3), listMatches(X).
 isQuadruplet(X) :- length(X, 4), listMatches(X).
 
