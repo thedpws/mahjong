@@ -1,6 +1,11 @@
 quantity(X, 4) :- isTile(X).
 
-% isTriplet(X) :- 
+isRun(X) :- 
+isTriplet(X) :- length(X, 3), listMatches(X).
+isQuadruplet(X) :- length(X, 4), listMatches(X).
+
+listMatches(X) :- length(X, 1).
+listMatches(X) :- X = [H1,H2 | T ], matches(H1, H2), listMatches([H2|T]).
 
 matches(X, X).
 
