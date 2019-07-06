@@ -1,9 +1,186 @@
-isEquivalent(Hand1, Hand2, Equivalency) :- quicksort(Hand1, Hand1Sorted), quicksort(Hand2, Hand2Sorted), isEquivalentHelp(Hand1Sorted, Hand2Sorted, Equivalency).
-isEquivalentHelp([H|T1], [H|T2], Equivalency) :- isEquivalentHelp(T1, T2, Equivalency).
-isEquivalentHelp([], [], true).
+% __  __       _      _                           _ 
+%|  \/  | __ _| |__  (_) ___  _ __   __ _   _ __ | |
+%| |\/| |/ _` | '_ \ | |/ _ \| '_ \ / _` | | '_ \| |
+%| |  | | (_| | | | || | (_) | | | | (_| |_| |_) | |
+%|_|  |_|\__,_|_| |_|/ |\___/|_| |_|\__, (_) .__/|_|
+%                  |__/             |___/  |_|      
+
+%###################################################
+%#                                                 #
+%#    https://github.com/thedpws/mahjong.git       #
+%#                                                 #
+%###################################################
+
+% TODO: Include honors
+countSetsHand(Hand, NSets) :- 
+  exclude(  suit(bamboo),     Hand, Bamboos     ),
+  exclude(  suit(circle),     Hand, Circles     ),
+  exclude(  suit(character),  Hand, Characters  ),
+  countSets(Bamboos,    NBambooSets), 
+  countSets(Circles,    NCircleSets),
+  countSets(Characters, NCharacterSets),
+  (NSets is (NBambooSets+NCircleSets+NCharacterSets)).
+identity(X, Y) :- X==Y.
+
+% all are same type bamboo, east, white, etc.
+countSets(Tiles, NSets) :-
+  length(Tiles, L), L >= 3,
+  % Consider run
+  considerRun(Tiles, NSetsConsiderRun, UnusedConsiderRun),
+  countSets(UnusedConsiderRun, NSetsRunRecurse),
+  NSetsConsiderRun = 1+NSetsRunRecurse,
+  % Consider triplet
+  %considerTriplet(Tiles, NSetsConsiderTriplet, UnusedConsiderTriplet),
+  %countSets(UnusedConsiderTriplet, NSetsTripletRecurse),
+  %NSetsConsiderTriplet is 1+NSetsTripletRecurse,
+  % Consider ignoring
+  %Tiles=[_|Tail], countSets(Tail, NSetsConsiderIgnore),
+  % Take the max
+  %Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderIgnore],
+  %max_list(Considerations, NSets).
+  NSets=NSetsConsiderRun.
+countSets(_, 0).
 
 
-% Quicksort
+
+considerRun(Tiles, NRuns, Unused) :-
+  Tiles = [T1 | Tail],
+  isRun([T1, T2, T3]),
+  member(T2, Tail), member(T3, Tail),
+  permutation(Tiles, [T1, T2, T3 | Unused]),
+  NRuns=1.
+considerRun(_, 0, _).
+
+considerTriplet(Tiles, NTriplets, Unused) :-
+  Tiles = [T1 | Tail],
+  isTriplet([T1, T2, T3]),
+  member(T2, Tail), member(T3, Tail),
+  permutation(Tiles, [T1, T2, T3 | Unused]),
+  NTriplets=1.
+considerTriplet(_, 0, _).
+% 1,1,1,2,2,2,3,3,3 should return 3
+% 1,2,2,2,3,3,3,4,4 should return 3
+
+
+
+
+
+quantity(X, 4) :- isTile(X).
+
+% _   _                 _     
+%| | | | __ _ _ __   __| |___ 
+%| |_| |/ _` | '_ \ / _` / __|
+%|  _  | (_| | | | | (_| \__ \
+%|_| |_|\__,_|_| |_|\__,_|___/
+
+isEquivalent(Hand1, Hand2) :- permutation(Hand1, Hand2).
+isRun(X) :- 
+  X=[Tile1,Tile2,Tile3], 
+  suit(Suit, Tile1), suit(Suit, Tile2), suit(Suit, Tile3), 
+  value(V1, Tile1), value(V2, Tile2), value(V3, Tile3), V2 is V1+1, V3 is V2+1.
+listMatches([H1, H2 | T]) :- identity(H1, H2), listMatches([H2 | T]).
+isTriplet(X) :- length(X, 3), listMatches(X).
+isQuadruplet(X) :- length(X, 4), listMatches(X).
+
+% _____ _ _           
+%|_   _(_) | ___  ___ 
+%  | | | | |/ _ \/ __|
+%  | | | | |  __/\__ \
+%  |_| |_|_|\___||___/
+                     
+matches(X, X).
+
+matchesSuit(X,Y) :- suit(Suit, X), suit(Suit, Y).
+
+isSimple(X) :- isSuit(X), not(isTerminal(X)).
+
+isTerminal(X) :- value(1, X).
+isTerminal(X) :- value(9, X).
+
+isTile(X) :- isHonor(X).
+isTile(X) :- isSuit(X, _).
+
+isHonor(X) :- dragon(_, X).
+isHonor(X) :- wind(_, X).
+
+isSuit(X) :- suit(_, X).
+
+value(1, bamboo_1).
+value(2, bamboo_2).
+value(3, bamboo_3).
+value(4, bamboo_4).
+value(5, bamboo_5).
+value(6, bamboo_6).
+value(7, bamboo_7).
+value(8, bamboo_8).
+value(9, bamboo_9).
+
+value(1, circle_1).
+value(2, circle_2).
+value(3, circle_3).
+value(4, circle_4).
+value(5, circle_5).
+value(6, circle_6).
+value(7, circle_7).
+value(8, circle_8).
+value(9, circle_9).
+
+value(1, character_1).
+value(2, character_2).
+value(3, character_3).
+value(4, character_4).
+value(5, character_5).
+value(6, character_6).
+value(7, character_7).
+value(8, character_8).
+value(9, character_9).
+
+suit(bamboo, bamboo_1).
+suit(bamboo, bamboo_2).
+suit(bamboo, bamboo_3).
+suit(bamboo, bamboo_4).
+suit(bamboo, bamboo_5).
+suit(bamboo, bamboo_6).
+suit(bamboo, bamboo_7).
+suit(bamboo, bamboo_8).
+suit(bamboo, bamboo_9).
+
+suit(character, character_1).
+suit(character, character_2).
+suit(character, character_3).
+suit(character, character_4).
+suit(character, character_5).
+suit(character, character_6).
+suit(character, character_7).
+suit(character, character_8).
+suit(character, character_9).
+
+suit(circle, circle_1).
+suit(circle, circle_2).
+suit(circle, circle_3).
+suit(circle, circle_4).
+suit(circle, circle_5).
+suit(circle, circle_6).
+suit(circle, circle_7).
+suit(circle, circle_8).
+suit(circle, circle_9).
+
+
+dragon(white, white_dragon).
+dragon(red, red_dragon).
+dragon(green, green_dragon).
+
+wind(east, east_wind).
+wind(south, south_wind).
+wind(west, west_wind).
+wind(north, north_wind).
+
+% ____             _   _             
+%/ ___|  ___  _ __| |_(_)_ __   __ _ 
+%\___ \ / _ \| '__| __| | '_ \ / _` |
+% ___) | (_) | |  | |_| | | | | (_| |
+%|____/ \___/|_|   \__|_|_| |_|\__, |
+%                              |___/ 
 pivot(_, [], [], []).
 pivot(Pivot, [Head|Tail], [Head|LessThan], GreaterThanOrEqualTo) :- not(isLessThan(Pivot, Head)), pivot(Pivot, Tail, LessThan, GreaterThanOrEqualTo). 
 pivot(Pivot, [Head|Tail], LessThan, [Head|GreaterThanOrEqualTo]) :- isLessThan(Pivot, Head), pivot(Pivot, Tail, LessThan, GreaterThanOrEqualTo).
@@ -11,121 +188,18 @@ pivot(Pivot, [Head|Tail], LessThan, [Head|GreaterThanOrEqualTo]) :- isLessThan(P
 quicksort([], []).
 quicksort([Head|Tail], Sorted) :- pivot(Head, Tail, List1, List2), quicksort(List1, SortedList1), quicksort(List2, SortedList2), append(SortedList1, [Head|SortedList2], Sorted).
 
-quantity(X, 4) :- isTile(X).
-
-isRun(X) :- X=[Tile1,Tile2,Tile3], value(Tile1, V0), value(Tile2, V0+1), value(Tile3, V0+2).
-isTriplet(X) :- length(X, 3), listMatches(X).
-isQuadruplet(X) :- length(X, 4), listMatches(X).
-
-listMatches(X) :- length(X, 1).
-listMatches(X) :- X = [H1,H2 | T ], matches(H1, H2), listMatches([H2|T]).
-
-matches(X, X).
-
-matchesSuit(X,Y) :- suit(X, Suit), suit(Y, Suit).
-
-isSimple(X) :- isSuit(X), not(isTerminal(X)).
-
-isTerminal(X) :- value(X, 1).
-isTerminal(X) :- value(X, 9).
-
-isTile(X) :- isHonor(X).
-isTile(X) :- isSuit(X, _).
-
-isHonor(X) :- dragon(X, _).
-isHonor(X) :- wind(X, _).
-
-isSuit(X) :- suit(X, _).
-
-value(bamboo_1, 1).
-value(bamboo_2, 2).
-value(bamboo_3, 3).
-value(bamboo_4, 4).
-value(bamboo_5, 5).
-value(bamboo_6, 6).
-value(bamboo_7, 7).
-value(bamboo_8, 8).
-value(bamboo_9, 9).
-
-value(circle_1, 1).
-value(circle_2, 2).
-value(circle_3, 3).
-value(circle_4, 4).
-value(circle_5, 5).
-value(circle_6, 6).
-value(circle_7, 7).
-value(circle_8, 8).
-value(circle_9, 9).
-
-value(character_1, 1).
-value(character_2, 2).
-value(character_3, 3).
-value(character_4, 4).
-value(character_5, 5).
-value(character_6, 6).
-value(character_7, 7).
-value(character_8, 8).
-value(character_9, 9).
-
-suit(bamboo_1, bamboo).
-suit(bamboo_2, bamboo).
-suit(bamboo_3, bamboo).
-suit(bamboo_4, bamboo).
-suit(bamboo_5, bamboo).
-suit(bamboo_6, bamboo).
-suit(bamboo_7, bamboo).
-suit(bamboo_8, bamboo).
-suit(bamboo_9, bamboo).
-
-suit(character_1, character).
-suit(character_2, character).
-suit(character_3, character).
-suit(character_4, character).
-suit(character_5, character).
-suit(character_6, character).
-suit(character_7, character).
-suit(character_8, character).
-suit(character_9, character).
-
-suit(circle_1, circle).
-suit(circle_2, circle).
-suit(circle_3, circle).
-suit(circle_4, circle).
-suit(circle_5, circle).
-suit(circle_6, circle).
-suit(circle_7, circle).
-suit(circle_8, circle).
-suit(circle_9, circle).
-
-
-dragon(white_dragon, white).
-dragon(red_dragon, red).
-dragon(green_dragon, green).
-
-wind(east_wind, east).
-wind(south_wind, south).
-wind(west_wind, west).
-wind(north_wind, north).
-
-%  ____                                 _                     
-% / ___|___  _ __ ___  _ __   __ _ _ __(_)___  ___  _ __  ___ 
-%| |   / _ \| '_ ` _ \| '_ \ / _` | '__| / __|/ _ \| '_ \/ __|
-%| |__| (_) | | | | | | |_) | (_| | |  | \__ \ (_) | | | \__ \
-% \____\___/|_| |_| |_| .__/ \__,_|_|  |_|___/\___/|_| |_|___/
-%                     |_|                                     
-
 isLessThan(L, G) :- isSuit(L), isHonor(G).                  % Suits < Honors
-isLessThan(L, G) :- suit(L, bamboo), suit(G, circle).       % Bamboo < Circle < Character
-isLessThan(L, G) :- suit(L, bamboo), suit(G, character). 
-isLessThan(L, G) :- suit(L, circle), suit(G, character).
-isLessThan(L, G) :- suit(L, Suit), suit(G, Suit), value(L, V0), value(G, V1), V1 > V0.    % 1 < 2 < ... < 9
-isLessThan(L, G) :- dragon(L, _), wind(G, _).               % Dragon < Wind
-isLessThan(L, G) :- dragon(L, white), dragon(G, red).         % White < Red < Green
-isLessThan(L, G) :- dragon(L, white), dragon(G, green).         % White < Red < Green
-isLessThan(L, G) :- dragon(L, red), dragon(G, green).
-isLessThan(L, G) :- wind(L, east), wind(G, south).              % East < South < West < North
-isLessThan(L, G) :- wind(L, east), wind(G, west).
-isLessThan(L, G) :- wind(L, east), wind(G, north).
-isLessThan(L, G) :- wind(L, south), wind(G, west).
-isLessThan(L, G) :- wind(L, south), wind(G, north).
-isLessThan(L, G) :- wind(L, west), wind(G, north).
+isLessThan(L, G) :- suit(bamboo, L), suit(circle, G).       % Bamboo < Circle < Character
+isLessThan(L, G) :- suit(bamboo, L), suit(character, G). 
+isLessThan(L, G) :- suit(circle, L), suit(character, G).
+isLessThan(L, G) :- suit(Suit, L), suit(Suit, G), value(V1, L), value(V2, G), V2 > V1.    % 1 < 2 < ... < 9
+isLessThan(L, G) :- dragon(_, L), wind(_, G).               % Dragon < Wind
+isLessThan(L, G) :- dragon(white, L), dragon(red, G).         % White < Red < Green
+isLessThan(L, G) :- dragon(white, L), dragon(green, G).         % White < Red < Green
+isLessThan(L, G) :- dragon(red, L), dragon(green, G).
+isLessThan(L, G) :- wind(east, L), wind(south, G).              % East < South < West < North
+isLessThan(L, G) :- wind(east, L), wind(west, G).
+isLessThan(L, G) :- wind(east, L), wind(north, G).
+isLessThan(L, G) :- wind(south, L), wind(west, G).
+isLessThan(L, G) :- wind(south, L), wind(north, G).
+isLessThan(L, G) :- wind(west, L), wind(north, G).
