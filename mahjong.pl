@@ -13,51 +13,77 @@
 
 % TODO: Include honors
 countSetsHand(Hand, NSets) :- 
-  exclude(  suit(bamboo),     Hand, Bamboos     ),
-  exclude(  suit(circle),     Hand, Circles     ),
-  exclude(  suit(character),  Hand, Characters  ),
+  include(  suit(bamboo),     Hand, Bamboos     ),
+  include(  suit(circle),     Hand, Circles     ),
+  include(  suit(character),  Hand, Characters  ),
+  include(  isHonor,          Hand, Honors      ),
   countSets(Bamboos,    NBambooSets), 
   countSets(Circles,    NCircleSets),
   countSets(Characters, NCharacterSets),
-  (NSets is (NBambooSets+NCircleSets+NCharacterSets)).
-identity(X, Y) :- X==Y.
+  countSets(Honors, NHonorSets),
+  (NSets is (NBambooSets+NCircleSets+NCharacterSets+NHonorSets)).
 
 % all are same type bamboo, east, white, etc.
+
+countSets([], 0).
 countSets(Tiles, NSets) :-
-  length(Tiles, L), L >= 3,
   % Consider run
-  considerRun(Tiles, NSetsConsiderRun, UnusedConsiderRun),
-  countSets(UnusedConsiderRun, NSetsRunRecurse),
-  NSetsConsiderRun = 1+NSetsRunRecurse,
+  considerRun(Tiles, NSetsConsiderRun), 
   % Consider triplet
+  considerTriplet(Tiles, NSetsConsiderTriplet),
   %considerTriplet(Tiles, NSetsConsiderTriplet, UnusedConsiderTriplet),
   %countSets(UnusedConsiderTriplet, NSetsTripletRecurse),
   %NSetsConsiderTriplet is 1+NSetsTripletRecurse,
   % Consider ignoring
-  %Tiles=[_|Tail], countSets(Tail, NSetsConsiderIgnore),
+  considerIgnore(Tiles, NSetsConsiderIgnore),
   % Take the max
-  %Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderIgnore],
-  %max_list(Considerations, NSets).
-  NSets=NSetsConsiderRun.
+  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderIgnore],
+  max_list(Considerations, NSets).
+  %NSets = NSetsConsiderTriplet.
 countSets(_, 0).
 
 
 
-considerRun(Tiles, NRuns, Unused) :-
+
+considerIgnore([], 0).
+considerIgnore(Tiles, NRuns) :-
+  Tiles = [_|Tail],
+  countSets(Tail, NRuns).
+
+considerRun(Tiles, NRuns) :-
   Tiles = [T1 | Tail],
   isRun([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
-  permutation(Tiles, [T1, T2, T3 | Unused]),
-  NRuns=1.
-considerRun(_, 0, _).
+  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  countSets(Leftover, NRecurse),
+  NRuns is (1+NRecurse).
+considerRun(Tiles, 0) :-
+  not(
+      (
+       Tiles=[T1|_],
+       isRun([T1, T2, T3]),
+       member(T2, Tiles), member(T3, tiles),
+       permutation(Tiles, [T1, T2, T3 | _])
+      )
+   ).
 
-considerTriplet(Tiles, NTriplets, Unused) :-
+
+considerTriplet(Tiles, NTriplets) :-
   Tiles = [T1 | Tail],
   isTriplet([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
-  permutation(Tiles, [T1, T2, T3 | Unused]),
-  NTriplets=1.
-considerTriplet(_, 0, _).
+  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  countSets(Leftover, NRecurse),
+  NTriplets is (1+NRecurse).
+considerTriplet(Tiles, 0) :- 
+  not(
+    (
+     Tiles=[T1|_],
+     isTriplet([T1, T2, T3]),
+     member(T2, Tiles), member(T3, Tiles),
+     permutation(Tiles, [T1, T2, T3 | _])
+    )
+   ).
 % 1,1,1,2,2,2,3,3,3 should return 3
 % 1,2,2,2,3,3,3,4,4 should return 3
 
@@ -73,13 +99,11 @@ quantity(X, 4) :- isTile(X).
 %|  _  | (_| | | | | (_| \__ \
 %|_| |_|\__,_|_| |_|\__,_|___/
 
-isEquivalent(Hand1, Hand2) :- permutation(Hand1, Hand2).
 isRun(X) :- 
   X=[Tile1,Tile2,Tile3], 
   suit(Suit, Tile1), suit(Suit, Tile2), suit(Suit, Tile3), 
   value(V1, Tile1), value(V2, Tile2), value(V3, Tile3), V2 is V1+1, V3 is V2+1.
-listMatches([H1, H2 | T]) :- identity(H1, H2), listMatches([H2 | T]).
-isTriplet(X) :- length(X, 3), listMatches(X).
+isTriplet([T1, T2, T3]) :- T1=T2, T2=T3.
 isQuadruplet(X) :- length(X, 4), listMatches(X).
 
 % _____ _ _           
