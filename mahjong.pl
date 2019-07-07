@@ -11,7 +11,6 @@
 %#                                                 #
 %###################################################
 
-% TODO: Include honors
 countSetsHand(Hand, NSets) :- 
   include(  suit(bamboo),     Hand, Bamboos     ),
   include(  suit(circle),     Hand, Circles     ),
@@ -27,19 +26,17 @@ countSetsHand(Hand, NSets) :-
 
 countSets([], 0).
 countSets(Tiles, NSets) :-
-  % Consider run
+  % Consider chi
   considerRun(Tiles, NSetsConsiderRun), 
-  % Consider triplet
+  % Consider pon
   considerTriplet(Tiles, NSetsConsiderTriplet),
-  %considerTriplet(Tiles, NSetsConsiderTriplet, UnusedConsiderTriplet),
-  %countSets(UnusedConsiderTriplet, NSetsTripletRecurse),
-  %NSetsConsiderTriplet is 1+NSetsTripletRecurse,
+  % Consider kong
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet),
   % Consider ignoring
   considerIgnore(Tiles, NSetsConsiderIgnore),
   % Take the max
-  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderIgnore],
+  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
   max_list(Considerations, NSets).
-  %NSets = NSetsConsiderTriplet.
 countSets(_, 0).
 
 
@@ -84,11 +81,22 @@ considerTriplet(Tiles, 0) :-
      permutation(Tiles, [T1, T2, T3 | _])
     )
    ).
-% 1,1,1,2,2,2,3,3,3 should return 3
-% 1,2,2,2,3,3,3,4,4 should return 3
-
-
-
+considerQuadruplet(Tiles, NQuadruplets) :-
+  Tiles = [T1 | Tail],
+  isQuadruplet([T1, T2, T3]),
+  member(T2, Tail), member(T3, Tail),
+  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  countSets(Leftover, NRecurse),
+  NQuadruplets is (1+NRecurse).
+considerQuadruplet(Tiles, 0) :- 
+  not(
+    (
+     Tiles=[T1|_],
+     isQuadruplet([T1, T2, T3]),
+     member(T2, Tiles), member(T3, Tiles),
+     permutation(Tiles, [T1, T2, T3 | _])
+    )
+   ).
 
 
 quantity(X, 4) :- isTile(X).
@@ -103,8 +111,9 @@ isRun(X) :-
   X=[Tile1,Tile2,Tile3], 
   suit(Suit, Tile1), suit(Suit, Tile2), suit(Suit, Tile3), 
   value(V1, Tile1), value(V2, Tile2), value(V3, Tile3), V2 is V1+1, V3 is V2+1.
-isTriplet([T1, T2, T3]) :- T1=T2, T2=T3.
-isQuadruplet(X) :- length(X, 4), listMatches(X).
+isPair([T, T]).
+isTriplet([T, T, T]).
+isQuadruplet([T, T, T, T]).
 
 % _____ _ _           
 %|_   _(_) | ___  ___ 
