@@ -30,25 +30,59 @@ concat([H|Lists], List) :-
 
 % all are same type bamboo, east, white, etc.
 
-map(X, Y).
+map(X,Y) :- asserta(isMap(X,Y)).
+
+getLargestKey([],_) :- false.
+getLargestKey([K],K).
+getLargestKey([K1,K2], LargestKey) :-
+  K1 > K2, LargestKey=K1.
+getLargestKey([K1,K2], LargestKey) :-
+  K1 =< K2, LargestKey=K2.
+getLargestKey([K1, K2 | Ks], LargestKey) :-
+  getLargestKey([K1, K2], SubLargestKey),
+  getLargestKey([SubLargestKey | Ks], LargestKey).
+
 countSets([], 0, []).
+% Run
 countSets(Tiles, NSets, Unused) :-
-  % Consider chi
   considerRun(Tiles, NSetsConsiderRun, UnusedRun), 
-  map(NSetsConsiderRun, UnusedRun),
-  % Consider pon
-  considerTriplet(Tiles, NSetsConsiderTriplet, UnusedTriplet),
-  map(NSetsConsiderTriplet, UnusedTriplet),
-  % Consider kong
-  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, UnusedQuadruplet),
-  map(NSetsConsiderQuadruplet, UnusedQuadruplet),
-  % Consider ignoring
-  considerIgnore(Tiles, NSetsConsiderIgnore, UnusedIgnore),
-  map(NSetsConsiderIgnore, UnusedIgnore),
-  % Take the max
+  considerTriplet(Tiles, NSetsConsiderTriplet, _),
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, _),
+  considerIgnore(Tiles, NSetsConsiderIgnore, _),
   Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
-  max_list(Considerations, NSets),
-  map(NSets, Unused).
+  max_list(Considerations, NSetsConsiderRun),
+  Unused=UnusedRun,
+  NSets=NSetsConsiderRun.
+% Triplet
+countSets(Tiles, NSets, Unused) :-
+  considerRun(Tiles, NSetsConsiderRun, _), 
+  considerTriplet(Tiles, NSetsConsiderTriplet, UnusedTriplet),
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, _),
+  considerIgnore(Tiles, NSetsConsiderIgnore, _),
+  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
+  max_list(Considerations, NSetsConsiderTriplet),
+  Unused=UnusedTriplet,
+  NSets=NSetsConsiderTriplet.
+% Quadruplet
+countSets(Tiles, NSets, Unused) :-
+  considerRun(Tiles, NSetsConsiderRun, _), 
+  considerTriplet(Tiles, NSetsConsiderTriplet, _),
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, UnusedQuadruplet),
+  considerIgnore(Tiles, NSetsConsiderIgnore, _),
+  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
+  max_list(Considerations, NSetsConsiderQuadruplet),
+  Unused=UnusedQuadruplet,
+  NSets=NSetsConsiderQuadruplet.
+% Ignore
+countSets(Tiles, NSets, Unused) :-
+  considerRun(Tiles, NSetsConsiderRun, _), 
+  considerTriplet(Tiles, NSetsConsiderTriplet, _),
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, _),
+  considerIgnore(Tiles, NSetsConsiderIgnore, UnusedIgnore),
+  Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
+  max_list(Considerations, NSetsConsiderIgnore),
+  Unused=UnusedIgnore,
+  NSets=NSetsConsiderIgnore.
 countSets(_, 0).
 
 
@@ -56,14 +90,15 @@ countSets(_, 0).
 
 considerIgnore([], 0, []).
 considerIgnore(Tiles, NRuns, Unused) :-
-  Tiles = [_|Tail],
-  countSets(Tail, NRuns, Unused).
+  Tiles = [Ignored|Tail],
+  countSets(Tail, NRuns, UnusedRecurse),
+  Unused = [Ignored | UnusedRecurse].
 
 considerRun(Tiles, NRuns, Unused) :-
   Tiles = [T1 | Tail],
   isRun([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
-  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  permutation(Tiles, [T1, T2, T3 | Leftover]), !,
   countSets(Leftover, NRecurse, Unused),
   NRuns is (1+NRecurse).
 considerRun(Tiles, 0, Tiles) :-
@@ -81,7 +116,7 @@ considerTriplet(Tiles, NTriplets, Unused) :-
   Tiles = [T1 | Tail],
   isTriplet([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
-  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  permutation(Tiles, [T1, T2, T3 | Leftover]), !,
   countSets(Leftover, NRecurse, Unused),
   NTriplets is (1+NRecurse).
 considerTriplet(Tiles, 0, Tiles) :- 
@@ -97,7 +132,7 @@ considerQuadruplet(Tiles, NQuadruplets, Unused) :-
   Tiles = [T1 | Tail],
   isQuadruplet([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
-  permutation(Tiles, [T1, T2, T3 | Leftover]),
+  permutation(Tiles, [T1, T2, T3 | Leftover]), !,
   countSets(Leftover, NRecurse, Unused),
   NQuadruplets is (1+NRecurse).
 considerQuadruplet(Tiles, 0, Tiles) :- 
