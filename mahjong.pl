@@ -11,50 +11,62 @@
 %#                                                 #
 %###################################################
 
-countSetsHand(Hand, NSets) :- 
+countSetsHand(Hand, NSets, UnusedTiles) :- 
   include(  suit(bamboo),     Hand, Bamboos     ),
   include(  suit(circle),     Hand, Circles     ),
   include(  suit(character),  Hand, Characters  ),
   include(  isHonor,          Hand, Honors      ),
-  countSets(Bamboos,    NBambooSets), 
-  countSets(Circles,    NCircleSets),
-  countSets(Characters, NCharacterSets),
-  countSets(Honors, NHonorSets),
-  (NSets is (NBambooSets+NCircleSets+NCharacterSets+NHonorSets)).
+  countSets(Bamboos,    NBambooSets,    UnusedBamboos), 
+  countSets(Circles,    NCircleSets,    UnusedCircles),
+  countSets(Characters, NCharacterSets, UnusedCharacters),
+  countSets(Honors,     NHonorSets,     UnusedHonors),
+  (NSets is (NBambooSets+NCircleSets+NCharacterSets+NHonorSets)),
+  concat([UnusedBamboos, UnusedCircles, UnusedCharacters, UnusedHonors], UnusedTiles).
+
+concat([], []).
+concat([H|Lists], List) :-
+  concat(Lists, Recurse),
+  append(H, Recurse, List).
 
 % all are same type bamboo, east, white, etc.
 
-countSets([], 0).
-countSets(Tiles, NSets) :-
+map(X, Y).
+countSets([], 0, []).
+countSets(Tiles, NSets, Unused) :-
   % Consider chi
-  considerRun(Tiles, NSetsConsiderRun), 
+  considerRun(Tiles, NSetsConsiderRun, UnusedRun), 
+  map(NSetsConsiderRun, UnusedRun),
   % Consider pon
-  considerTriplet(Tiles, NSetsConsiderTriplet),
+  considerTriplet(Tiles, NSetsConsiderTriplet, UnusedTriplet),
+  map(NSetsConsiderTriplet, UnusedTriplet),
   % Consider kong
-  considerQuadruplet(Tiles, NSetsConsiderQuadruplet),
+  considerQuadruplet(Tiles, NSetsConsiderQuadruplet, UnusedQuadruplet),
+  map(NSetsConsiderQuadruplet, UnusedQuadruplet),
   % Consider ignoring
-  considerIgnore(Tiles, NSetsConsiderIgnore),
+  considerIgnore(Tiles, NSetsConsiderIgnore, UnusedIgnore),
+  map(NSetsConsiderIgnore, UnusedIgnore),
   % Take the max
   Considerations = [NSetsConsiderRun, NSetsConsiderTriplet, NSetsConsiderQuadruplet, NSetsConsiderIgnore],
-  max_list(Considerations, NSets).
+  max_list(Considerations, NSets),
+  map(NSets, Unused).
 countSets(_, 0).
 
 
 
 
-considerIgnore([], 0).
-considerIgnore(Tiles, NRuns) :-
+considerIgnore([], 0, []).
+considerIgnore(Tiles, NRuns, Unused) :-
   Tiles = [_|Tail],
-  countSets(Tail, NRuns).
+  countSets(Tail, NRuns, Unused).
 
-considerRun(Tiles, NRuns) :-
+considerRun(Tiles, NRuns, Unused) :-
   Tiles = [T1 | Tail],
   isRun([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
   permutation(Tiles, [T1, T2, T3 | Leftover]),
-  countSets(Leftover, NRecurse),
+  countSets(Leftover, NRecurse, Unused),
   NRuns is (1+NRecurse).
-considerRun(Tiles, 0) :-
+considerRun(Tiles, 0, Tiles) :-
   not(
       (
        Tiles=[T1|_],
@@ -65,14 +77,14 @@ considerRun(Tiles, 0) :-
    ).
 
 
-considerTriplet(Tiles, NTriplets) :-
+considerTriplet(Tiles, NTriplets, Unused) :-
   Tiles = [T1 | Tail],
   isTriplet([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
   permutation(Tiles, [T1, T2, T3 | Leftover]),
-  countSets(Leftover, NRecurse),
+  countSets(Leftover, NRecurse, Unused),
   NTriplets is (1+NRecurse).
-considerTriplet(Tiles, 0) :- 
+considerTriplet(Tiles, 0, Tiles) :- 
   not(
     (
      Tiles=[T1|_],
@@ -81,14 +93,14 @@ considerTriplet(Tiles, 0) :-
      permutation(Tiles, [T1, T2, T3 | _])
     )
    ).
-considerQuadruplet(Tiles, NQuadruplets) :-
+considerQuadruplet(Tiles, NQuadruplets, Unused) :-
   Tiles = [T1 | Tail],
   isQuadruplet([T1, T2, T3]),
   member(T2, Tail), member(T3, Tail),
   permutation(Tiles, [T1, T2, T3 | Leftover]),
-  countSets(Leftover, NRecurse),
+  countSets(Leftover, NRecurse, Unused),
   NQuadruplets is (1+NRecurse).
-considerQuadruplet(Tiles, 0) :- 
+considerQuadruplet(Tiles, 0, Tiles) :- 
   not(
     (
      Tiles=[T1|_],
